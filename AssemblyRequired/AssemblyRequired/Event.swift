@@ -15,7 +15,27 @@ struct Event: Decodable, Identifiable {
     let id: Int
     let title: String
     let description: String?
-    let starts_at: String?
-    let ends_at: String?
+    let startsAt: String?
+    let endsAt: String?
     let status: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case startsAt = "starts_at"
+        case endsAt = "ends_at"
+        case status
+    }
+
+    // MARK: - Computed Date Helpers
+
+    var startsDate: Date? {
+        DateFormatting.parseISO8601(startsAt)
+    }
+
+    var endsDate: Date? {
+        DateFormatting.parseISO8601(endsAt)
+    }
 }
+
