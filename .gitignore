@@ -41,3 +41,20 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Xcode
+DerivedData/
+build/
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+
+# Swift Package Manager
+.build/
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+
