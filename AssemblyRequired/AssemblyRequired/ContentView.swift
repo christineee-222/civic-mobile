@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var auth: AuthStore
+
     @State private var output = "Ready."
-    @State private var jwt: String? = nil
     @State private var isBusy = false
 
     var body: some View {
@@ -21,12 +22,12 @@ struct ContentView: View {
                 Button(isBusy ? "Working..." : "Sign In") {
                     Task { await signIn() }
                 }
-                .disabled(isBusy)
+                .disabled(isBusy || auth.isAuthenticating)
 
                 Button("Call /v1/me") {
                     Task { await loadMe() }
                 }
-                .disabled(isBusy || jwt == nil)
+                .disabled(isBusy || auth.jwt == nil)
 
                 Button("Ping API") {
                     Task { await ping() }
@@ -45,6 +46,11 @@ struct ContentView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .padding()
+        .onAppear {
+            if auth.jwt == nil {
+                output = "Not signed in."
+            }
+        }
     }
 
     private func signIn() async {
@@ -53,26 +59,25 @@ struct ContentView: View {
 
         do {
             output = "Opening login…"
-            let code = try await AuthSession.shared.startLogin()
-
-            output = "Exchanging code for JWT…"
-            let token = try await AuthAPI.shared.exchangeCodeForJWT(code: code)
-            jwt = token
-
-            output = "✅ Got JWT (in-memory for now)\nFirst 24 chars: \(token.prefix(24))…"
+            try await auth.signIn()
+            output = "✅ Signed in."
         } catch {
             output = "❌ Sign-in error: \(error.localizedDescription)"
         }
     }
 
     private func loadMe() async {
-        guard let jwt else { return }
+        guard auth.jwt != nil else {
+            output = "Not signed in."
+            return
+        }
+
         isBusy = true
         defer { isBusy = false }
 
         do {
             output = "Calling /api/v1/me…"
-            output = try await AuthAPI.shared.fetchMe(jwt: jwt)
+            output = try await AuthAPI.shared.fetchMe()
         } catch {
             output = "❌ /me error: \(error.localizedDescription)"
         }
@@ -96,6 +101,7 @@ struct ContentView: View {
         }
     }
 }
+
 
 
 

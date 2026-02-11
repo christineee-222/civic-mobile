@@ -39,9 +39,13 @@ struct EventsView: View {
                 List(events) { event in
                     NavigationLink {
                         EventDetailView(event: event)
+                            .environmentObject(auth)
+                            .onDisappear {
+                                // When coming back from detail, reload to reflect RSVP changes.
+                                Task { await loadEvents() }
+                            }
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
-
                             Text(event.title)
                                 .font(.headline)
 
@@ -64,6 +68,7 @@ struct EventsView: View {
                         }
                         .padding(.vertical, 6)
                     }
+
                 }
                 .listStyle(.plain)
 
@@ -80,7 +85,9 @@ struct EventsView: View {
         defer { isBusy = false }
 
         do {
-            events = try await APIClient.shared.fetchEvents(jwt: auth.jwt)
+            // ✅ FIX: removed jwt parameter
+            events = try await APIClient.shared.fetchEvents()
+
             if events.isEmpty {
                 output = "No events yet."
             }
@@ -94,6 +101,8 @@ struct EventsView: View {
         }
     }
 }
+
+
 
 
 

@@ -11,6 +11,20 @@ struct EventsResponse: Decodable {
     let data: [Event]
 }
 
+struct EventRsvp: Decodable, Identifiable {
+    let id: Int
+    let status: String
+    let userId: Int?
+    let eventId: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case status
+        case userId = "user_id"
+        case eventId = "event_id"
+    }
+}
+
 struct Event: Decodable, Identifiable {
     let id: Int
     let title: String
@@ -18,6 +32,7 @@ struct Event: Decodable, Identifiable {
     let startsAt: String?
     let endsAt: String?
     let status: String?
+    let rsvp: EventRsvp?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -26,16 +41,11 @@ struct Event: Decodable, Identifiable {
         case startsAt = "starts_at"
         case endsAt = "ends_at"
         case status
+        case rsvp
     }
 
-    // MARK: - Computed Date Helpers
-
-    var startsDate: Date? {
-        DateFormatting.parseISO8601(startsAt)
-    }
-
-    var endsDate: Date? {
-        DateFormatting.parseISO8601(endsAt)
-    }
+    var startsDate: Date? { DateFormatting.parseISO8601(startsAt) }
+    var endsDate: Date? { DateFormatting.parseISO8601(endsAt) }
 }
+
 

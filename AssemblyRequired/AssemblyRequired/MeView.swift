@@ -71,7 +71,7 @@ struct MeView: View {
     }
 
     private func loadMe() async {
-        guard let jwt = auth.jwt else {
+        guard TokenStore.shared.readJWT() != nil else {
             output = "Not signed in."
             return
         }
@@ -80,7 +80,7 @@ struct MeView: View {
         defer { isBusy = false }
 
         do {
-            output = try await AuthAPI.shared.fetchMe(jwt: jwt)
+            output = try await AuthAPI.shared.fetchMe()
         } catch let apiErr as APIError {
             if case .unauthenticated = apiErr {
                 auth.signOut()
@@ -90,4 +90,5 @@ struct MeView: View {
             output = "❌ /me error: \(error.localizedDescription)"
         }
     }
+
 }

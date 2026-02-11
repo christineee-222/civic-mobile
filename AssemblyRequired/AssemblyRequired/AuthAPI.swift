@@ -16,6 +16,7 @@ struct TokenResponse: Decodable {
 enum APIError: Error, LocalizedError {
     case http(Int, String)
     case unauthenticated(String)
+    case notSignedIn
     case unexpectedResponse(String)
 
     var errorDescription: String? {
@@ -24,6 +25,8 @@ enum APIError: Error, LocalizedError {
             return "Request failed (\(code)). \(body)"
         case .unauthenticated(let msg):
             return msg.isEmpty ? "Unauthenticated." : msg
+        case .notSignedIn:
+            return "Not signed in."
         case .unexpectedResponse(let raw):
             return "Unexpected response: \(raw)"
         }
@@ -67,7 +70,12 @@ final class AuthAPI {
         throw APIError.unexpectedResponse(bodyText.isEmpty ? "<empty>" : bodyText)
     }
 
-    func fetchMe(jwt: String) async throws -> String {
+    /// Fetch /me using the JWT stored in Keychain (TokenStore).
+    func fetchMe() async throws -> String {
+        guard let jwt = TokenStore.shared.readJWT(), !jwt.isEmpty else {
+            throw APIError.notSignedIn
+        }
+
         let url = AppConfig.apiBaseURL.appendingPathComponent("api/v1/me")
 
         var req = URLRequest(url: url)
@@ -94,5 +102,6 @@ final class AuthAPI {
         return bodyText.isEmpty ? "<empty>" : bodyText
     }
 }
+
 
 

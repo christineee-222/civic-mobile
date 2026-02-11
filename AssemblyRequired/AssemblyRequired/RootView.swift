@@ -8,16 +8,24 @@
 import SwiftUI
 
 struct RootView: View {
-    @StateObject private var auth = AuthStore.shared
+    @EnvironmentObject private var auth: AuthStore
 
     var body: some View {
-        TabView {
-            EventsView()
-                .tabItem { Label("Events", systemImage: "calendar") }
+        Group {
+            if auth.jwt == nil {
+                // Replace with your real login view if you have one.
+                // If MeView contains the sign-in button, you can show MeView here instead.
+                MeView()
+            } else {
+                TabView {
+                    EventsView()
+                        .tabItem { Label("Events", systemImage: "calendar") }
 
-            MeView()
-                .tabItem { Label("Me", systemImage: "person.crop.circle") }
+                    MeView()
+                        .tabItem { Label("Me", systemImage: "person.crop.circle") }
+                }
+            }
         }
-        .environmentObject(auth)
     }
 }
+
