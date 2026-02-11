@@ -37,28 +37,33 @@ struct EventsView: View {
                 }
 
                 List(events) { event in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(event.title)
-                            .font(.headline)
+                    NavigationLink {
+                        EventDetailView(event: event)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
 
-                        if let desc = event.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
+                            Text(event.title)
+                                .font(.headline)
 
-                        if let start = event.startsDate {
-                            Text(DateFormatting.friendly(start))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("Date TBD")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let desc = event.description, !desc.isEmpty {
+                                Text(desc)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+
+                            if let start = event.startsDate {
+                                Text(DateFormatting.friendly(start))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Date TBD")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .padding(.vertical, 6)
                     }
-                    .padding(.vertical, 6)
                 }
                 .listStyle(.plain)
 
@@ -89,6 +94,7 @@ struct EventsView: View {
         }
     }
 }
+
 
 
 
