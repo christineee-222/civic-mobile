@@ -37,29 +37,40 @@ final class AuthAPI {
     static let shared = AuthAPI()
     private init() {}
 
+    // MARK: - Exchange WorkOS code for JWT
+
     func exchangeCodeForJWT(code: String) async throws -> String {
+        // AppConfig.apiBaseURL should already be something like:
+        // https://supreme-being-main-ifbs53.laravel.cloud/api/v1
         let url = AppConfig.apiBaseURL.appendingPathComponent("api/v1/mobile/exchange")
+        print("➡️ EXCHANGE CALL:", url.absoluteString, "codeLen:", code.count)
 
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
+        req.timeoutInterval = 15
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["code": code])
 
+        print("🧩 EXCHANGE sending request…")
+
         let (data, resp) = try await URLSession.shared.data(for: req)
 
-        guard let http = resp as? HTTPURLResponse else {
-            throw APIError.unexpectedResponse("No HTTP response.")
+        let status = (resp as? HTTPURLResponse)?.statusCode ?? -1
+
+        // Cap response size so simulator doesn’t kill app if server returns big HTML error
+        let capped = data.prefix(2048)
+        let bodyPreview = String(decoding: capped, as: UTF8.self)
+
+        print("⬅️ EXCHANGE RESPONSE:", status,
+              bodyPreview.replacingOccurrences(of: "\n", with: " ").prefix(300))
+
+        if status == 401 {
+            throw APIError.unauthenticated(bodyPreview)
         }
 
-        let bodyText = String(data: data, encoding: .utf8) ?? ""
-
-        if http.statusCode == 401 {
-            throw APIError.unauthenticated(bodyText)
-        }
-
-        guard (200...299).contains(http.statusCode) else {
-            throw APIError.http(http.statusCode, bodyText)
+        guard (200...299).contains(status) else {
+            throw APIError.http(status, bodyPreview)
         }
 
         if let decoded = try? JSONDecoder().decode(TokenResponse.self, from: data),
@@ -67,41 +78,45 @@ final class AuthAPI {
             return t
         }
 
-        throw APIError.unexpectedResponse(bodyText.isEmpty ? "<empty>" : bodyText)
+        throw APIError.unexpectedResponse(bodyPreview.isEmpty ? "<empty>" : bodyPreview)
     }
 
-    /// Fetch /me using the JWT stored in Keychain (TokenStore).
+    // MARK: - Fetch current user (/me)
+
     func fetchMe() async throws -> String {
         guard let jwt = TokenStore.shared.readJWT(), !jwt.isEmpty else {
             throw APIError.notSignedIn
         }
 
+        // Same rule: apiBaseURL already includes /api/v1
         let url = AppConfig.apiBaseURL.appendingPathComponent("api/v1/me")
 
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
+        req.timeoutInterval = 15
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("Bearer \(jwt)", forHTTPHeaderField: "Authorization")
 
         let (data, resp) = try await URLSession.shared.data(for: req)
 
-        guard let http = resp as? HTTPURLResponse else {
-            throw APIError.unexpectedResponse("No HTTP response.")
+        let status = (resp as? HTTPURLResponse)?.statusCode ?? -1
+        let capped = data.prefix(2048)
+        let bodyPreview = String(decoding: capped, as: UTF8.self)
+
+        if status == 401 {
+            throw APIError.unauthenticated(bodyPreview)
         }
 
-        let bodyText = String(data: data, encoding: .utf8) ?? ""
-
-        if http.statusCode == 401 {
-            throw APIError.unauthenticated(bodyText)
+        guard (200...299).contains(status) else {
+            throw APIError.http(status, bodyPreview)
         }
 
-        guard (200...299).contains(http.statusCode) else {
-            throw APIError.http(http.statusCode, bodyText)
-        }
-
-        return bodyText.isEmpty ? "<empty>" : bodyText
+        return bodyPreview.isEmpty ? "<empty>" : bodyPreview
     }
 }
+
+
+
 
 
 
